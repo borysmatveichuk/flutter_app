@@ -1,8 +1,11 @@
 import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_app/db/Database.dart';
+import 'package:flutter_app/model/Client.dart';
 import 'package:flutter_app/model/ListWrapper.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:math' as math;
 
 void main() => runApp(MyApp());
 
@@ -30,7 +33,9 @@ class RandomWordState extends State<RandomWords> {
         title: Text('Startup Name Generator'),
         actions: <Widget>[
           IconButton(icon: const Icon(Icons.list), onPressed: _pushSaved),
-          IconButton(icon: const Icon(Icons.sync), onPressed: _networkRequest)
+          //IconButton(icon: const Icon(Icons.sync), onPressed: _networkRequest)
+          IconButton(icon: const Icon(Icons.sync), onPressed: _addToDb),
+          IconButton(icon: const Icon(Icons.print), onPressed: _showDbClients)
         ],
       ),
       body: _buildSuggestions(),
@@ -75,15 +80,11 @@ class RandomWordState extends State<RandomWords> {
   }
 
   void _networkRequest() {
-
     _getNetworkData();
 
     Navigator.of(context)
         .push(MaterialPageRoute(builder: (BuildContext context) {
-
-
       return Scaffold(
-
         appBar: AppBar(
           title: const Text('Network data'),
         ),
@@ -131,6 +132,59 @@ class RandomWordState extends State<RandomWords> {
       );
     }));
   }
+
+  Future<List<Client>> _getFromDb() async {
+    var res = await DBProvider.db.getAllClients();
+    return res;
+  }
+
+  void _showDbClients() {
+    Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (BuildContext context) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Clients from db'),
+        ),
+        body: FutureBuilder(
+            future: _getFromDb(),
+            builder: (BuildContext context, AsyncSnapshot<List<Client>> snapshot) {
+              if (!snapshot.hasData) return new Container();
+              List<Client> content = snapshot.data;
+              return new ListView.builder(
+                  scrollDirection: Axis.vertical,
+                  padding: new EdgeInsets.all(6.0),
+                  itemCount: content.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    return new Container(
+                      alignment: FractionalOffset.center,
+                      margin: new EdgeInsets.only(bottom: 6.0),
+                      padding: new EdgeInsets.all(6.0),
+                      color: Colors.blueGrey,
+                      child: new Text(
+                        "${content[index].firstName} ${content[index].lastName} is blocked: ${content[index].blocked}",
+                        style: _biggerFont,
+                      ),
+                    );
+                  });
+            }),
+      );
+    }));
+  }
+
+  void _addToDb() async {
+    Client rnd = testClients[math.Random().nextInt(testClients.length)];
+    print("Client: ${rnd.firstName}");
+
+    var res = await DBProvider.db.insertClient(rnd);
+    print("Insert result: $res");
+    //setState(() {});
+  }
+
+  List<Client> testClients = [
+    Client(firstName: "Raouf", lastName: "Rahiche", blocked: false),
+    Client(firstName: "Zaki", lastName: "oun", blocked: true),
+    Client(firstName: "oussama", lastName: "ali", blocked: false),
+  ];
 }
 
 class RandomWords extends StatefulWidget {
