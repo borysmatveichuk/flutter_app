@@ -6,6 +6,9 @@ import 'package:flutter_app/model/ListWrapper.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:math' as math;
+import 'DbClients.dart';
+
+final biggerFont = const TextStyle(fontSize: 18.0);
 
 void main() => runApp(MyApp());
 
@@ -18,6 +21,12 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+class RandomWords extends StatefulWidget {
+  @override
+  State<StatefulWidget> createState() => RandomWordState();
+}
+
 
 class RandomWordState extends State<RandomWords> {
   final _suggestions = <WordPair>[];
@@ -35,7 +44,7 @@ class RandomWordState extends State<RandomWords> {
           IconButton(icon: const Icon(Icons.list), onPressed: _pushSaved),
           //IconButton(icon: const Icon(Icons.sync), onPressed: _networkRequest)
           IconButton(icon: const Icon(Icons.sync), onPressed: _addToDb),
-          IconButton(icon: const Icon(Icons.print), onPressed: _showDbClients)
+          IconButton(icon: const Icon(Icons.print), onPressed: () => showDbClients(context))
         ],
       ),
       body: _buildSuggestions(),
@@ -45,15 +54,17 @@ class RandomWordState extends State<RandomWords> {
   Widget _buildSuggestions() {
     return ListView.builder(
         padding: const EdgeInsets.all(16.0),
-        itemBuilder: (context, i) {
-          if (i.isOdd) return Divider();
+        itemBuilder: (context, i) => buildSuggestionItem(i));
+  }
 
-          final index = i ~/ 2;
-          if (index >= _suggestions.length) {
-            _suggestions.addAll(generateWordPairs().take(10));
-          }
-          return _buildRow(_suggestions[index]);
-        });
+  Widget buildSuggestionItem(int i) {
+    if (i.isOdd) return Divider();
+
+    final index = i ~/ 2;
+    if (index >= _suggestions.length) {
+      _suggestions.addAll(generateWordPairs().take(10));
+    }
+    return _buildRow(_suggestions[index]);
   }
 
   Widget _buildRow(WordPair pair) {
@@ -133,43 +144,7 @@ class RandomWordState extends State<RandomWords> {
     }));
   }
 
-  Future<List<Client>> _getFromDb() async {
-    var res = await DBProvider.db.getAllClients();
-    return res;
-  }
 
-  void _showDbClients() {
-    Navigator.of(context)
-        .push(MaterialPageRoute<void>(builder: (BuildContext context) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Clients from db'),
-        ),
-        body: FutureBuilder(
-            future: _getFromDb(),
-            builder: (BuildContext context, AsyncSnapshot<List<Client>> snapshot) {
-              if (!snapshot.hasData) return new Container();
-              List<Client> content = snapshot.data;
-              return new ListView.builder(
-                  scrollDirection: Axis.vertical,
-                  padding: new EdgeInsets.all(6.0),
-                  itemCount: content.length,
-                  itemBuilder: (BuildContext context, int index) {
-                    return new Container(
-                      alignment: FractionalOffset.center,
-                      margin: new EdgeInsets.only(bottom: 6.0),
-                      padding: new EdgeInsets.all(6.0),
-                      color: Colors.blueGrey,
-                      child: new Text(
-                        "${content[index].firstName} ${content[index].lastName} is blocked: ${content[index].blocked}",
-                        style: _biggerFont,
-                      ),
-                    );
-                  });
-            }),
-      );
-    }));
-  }
 
   void _addToDb() async {
     Client rnd = testClients[math.Random().nextInt(testClients.length)];
@@ -185,11 +160,4 @@ class RandomWordState extends State<RandomWords> {
     Client(firstName: "Zaki", lastName: "oun", blocked: true),
     Client(firstName: "oussama", lastName: "ali", blocked: false),
   ];
-}
-
-class RandomWords extends StatefulWidget {
-  @override
-  State<StatefulWidget> createState() {
-    return RandomWordState();
-  }
 }
